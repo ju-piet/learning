@@ -299,7 +299,7 @@ app.delete('/api/pokemons/:id', (req, res) => {
 Voici une petite liste des validateurs que nous utilisons dans l'API :
 ```jsx
 validate: {
-	notEmpty: { msg: "Le nom du pokémon ne peut pas être vide" },
+    notEmpty: { msg: "Le nom du pokémon ne peut pas être vide" },
     notNull: { msg: "Le nom est une propriété requise" },
     min: {
 	    args: [0],
