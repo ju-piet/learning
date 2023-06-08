@@ -89,7 +89,7 @@ app.use((err, req, res, next) => {
 }
 ```
 
-- Les Middlewares tiers (exemple avec le package *morgan*)
+- Les Middlewares tiers (exemple avec le package *morgan*) :
 ```jsx
 app.use(morgan('dev'))
 ```
@@ -134,7 +134,6 @@ const sequelize = new Sequelize(
 ### Création et configuration des modèles de données 
 
 Afin de configurer nos tables nous utilisons des modèles de données. Dans notre projet de formation, nous créons une application de gestion de pokémons, nous avons donc créé un modèle de données respectant les caractéristiques d'un pokémon et qui permettra de configurer notre table :
-
 ```jsx
 module.exports = (sequelize, DataTypes) => {
   return sequelize.define('Pokemon', {
@@ -293,3 +292,125 @@ app.delete('/api/pokemons/:id', (req, res) => {
 
 ### Configuration des validateurs 
 
+*Sequelize* embarque ce qu'on appelle des validateur, ils permettent comme leurs noms l'indiquent de valider ou non les données que l'on souhaite transmettre à notre BDD. Il existe des validateurs natifs à *sequelize* mais nous pouvons aussi en créer nous même. Il se configure à l'aide de l'option `validate`
+
+#### Validateurs natifs 
+
+Voici une petite liste des validateurs que nous utilisons dans l'API :
+```jsx
+validate: {
+	notEmpty: { msg: "Le nom du pokémon ne peut pas être vide" },
+    notNull: { msg: "Le nom est une propriété requise" },
+    min: {
+	    args: [0],
+	    msg: "Le nom doit contenir contenir au moins 1 caractère"
+    },
+    max: {
+	    args: [20],
+        msg: "Le nom doit contenir contenir moins de 20 caractères"
+    }
+}
+```
+
+Ce validateur est appliqué au champ *name* de notre pokémon est permet de valider plusieurs choses comme :
+- Que le champ est bien rempli avec l'option *notEmpty*
+- Que le champ ne soit pas *null* avec *notNull*
+- Que le nom contienne entre 1 et 20 caractères avec *min* et *max*
+
+Dans le cas d'un champ de type entier (int), nous pouvons aussi vérifier le type avec l'option *isInt*.
+
+#### Validateurs personnalisés 
+
+Dans le cas où les validateurs natifs ne permettent pas de vérifier une information sur les données, nous pouvons en créer. Ce que nous avons donc fait :
+```jsx
+validate: {
+    isTypeValid(value) {
+        if (!value) {
+            throw new Error('Un pokémon doit avoir au moins un type')
+        }
+        if (value.split(',').length > 3) {
+            throw new Error('Un pokémon ne peut pas avoir plus de 3 types')
+        }
+        value.split(',').forEach(type => {
+            if (!validTypes.includes(type)) {
+                throw new Error(`Le type ${type} est invalide, il doit appartenir à la liste suivante : ${validTypes}`)
+            }
+        });
+    }
+}
+```
+
+## Gestion des erreurs 
+
+Comme pour toutes API, la gestion des erreurs est très importante, elle permet à la fois d'aiguiller l'utilisateur ainsi que le développeur.
+
+Voici quelques erreurs que nous traitons :
+```jsx
+app.put('/api/pokemons/:id', auth, (req, res) => {
+    const id = req.params.id
+    Pokemon.update(req.body, {
+        where: { id: id }
+    })
+    .then(_ => {
+        return Pokemon.findByPk(id)
+        .then(pokemon => {
+            if(pokemon === null){    //Si on ne récupère pas le pokémon
+                const message = `Le pokémon n'a pas pu être récupéré.`
+                res.status(404).json({message, data: err})    //Erreur 404
+            }
+            const message = `Le pokémon ${pokemon.name} a bien été modifié.`
+            res.json({ message, data : pokemon })
+        })
+    })
+    .catch(err => {
+        if(err instanceof ValidationError){    // Si la donnée n'est pas valide (ref. validateur)
+            return res.status(400).json({ message: err.message, data: err })    //Erreur 400
+        }
+        if(err instanceof UniqueConstraintError){    //Si la donnée n'est pas unique
+            return res.status(400).json({ message: err.message, data: err })    //Erreur 400
+        }
+        const message = `Le pokémon n'a pas pu être modifié.`
+        res.status(500).json({message, data: err})    //Erreur 500
+    })
+})
+```
+
+## Authentification avec JWT
+
+Afin de s'authentifier à l'application et sécuriser les échanges des utilisateurs avec notre API, nous utilisons le standard JWT (JSON Web Token). 
+
+### Le *login*
+
+Pour générer notre *token*, nous avons créé un point de terminaison que voici :
+```jsx
+app.post('/api/login', (req, res) => {
+        User.findOne({ where: { username: req.body.username } }).then(user => {
+            if(!user){
+                const message = `L'utilisateur demandé n'existe pas.`;
+                return res.status(404).json({ message })
+            }
+
+            bcrypt.compare(req.body.password, user.password).then(isPasswordValid => {
+                if(!isPasswordValid) {
+                    const message = `Le mot de passe de l'utilisateur est incorrect.`;
+                    return res.status(401).json({ message })
+                }
+
+                //JWT
+                const token = jwt.sign(
+                    { userId: user.id },
+                    privateKey,
+                    { expiresIn: '24h' })
+
+                const message = `L'utilisateur a été connecté avec succès.`;
+                return res.json({ message, data: user, token })
+            })
+        })
+        .catch(err => {
+            const message = `L'utilisateur n'a pas pu se connecter`;
+            return res.status(500).json({ message: err.message, data: err })
+    })
+})
+```
+
+Une fois donc l'utilisateur retrouvé en base et le mot passe vérifié et nous générons le *token*.
