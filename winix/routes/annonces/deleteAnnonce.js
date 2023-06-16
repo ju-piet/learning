@@ -1,27 +1,18 @@
-const { client, annoncesCollection } = require('../../database/mongodb')
+const Annonce = require('../../database/models/annonce')
+const auth = require('../auth/auth')
 
 module.exports = (app) => {
-    app.delete('/api/annonces/:id', async (req, res) => {
-        try {
-            await client.connect()
-            const annonceId = req.params.id
-            await annoncesCollection.deleteOne({ _id: annonceId }, (error, result) => {
-                if (error) {
-                    const message = "Erreur lors de la suppression de l'annonce."
-                    res.status(500).send({ message, data: error })
-                } else if (result.deletedCount === 0) {
-                    const message = 'Annonce non trouvée'
-                    res.status(404).send({ message })
-                } else {
-                    const message = `L'annonce : ${result.title} a été supprimée avec succès.`
-                    res.status(200).send({ message, data: result })
-                }
-            })
-        } catch (error) {
-            const message = "Erreur lors de la création de l'annonce."
-            res.status(500).json({ message, data: error })
-        } finally {
-            await client.close()
-        }
+    app.delete('/api/annonces/:id', auth, (req, res) => {
+        Annonce.findByIdAndRemove(req.params.id)
+        .then(deletedAnnonce => {
+            if (!deletedAnnonce) {
+                return res.status(404).json({ message: 'Annonce non trouvé' })
+            }
+            const message = `L'annonce ${deletedAnnonce.title} a été supprimée avec succès`
+            res.json({ message, data: deletedAnnonce })
+        })
+        .catch(err => {
+            res.status(500).json({ error: err.message })
+        })
     })
 }
