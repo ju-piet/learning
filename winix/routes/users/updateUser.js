@@ -1,29 +1,44 @@
-const { client, usersCollection } = require('../../database/mongodb')
+const User = require('../../database/models/user')
+const auth = require('../auth/auth')
+const bcrypt = require('bcrypt')
+const fs = require('fs')
+
+//TEST
+const imageBuffer = fs.readFileSync('C:\\Users\\julie\\OneDrive\\Bureau\\repositories\\learning\\winix\\src\\images\\julien.jpg')
+const base64Image = imageBuffer.toString('base64')
+//FIN DU TEST
 
 module.exports = (app) => {
-    app.put('/api/users/:id', async (req, res) => {
-        try {
-            await client.connect((error));
-            const userId = new ObjectID(req.params.id);
-            const updatedUser = req.body;
-            await usersCollection.updateOne({ _id: userId }, { $set: updatedUser }, (result, error) => {
-                if(error){
-                    const message = "Erreur lors de la mise à jour de l'utilisateur"
-                    res.status(500).json({ message, data: error });
+    app.put('/api/users/:id', auth, (req, res) => {
+        bcrypt.hash(req.body.password, 10)
+        .then(hash => {
+            const updatedUser = new User({
+                firstname: req.body.firstname,
+                lastname: req.body.lastname,
+                email: req.body.email,
+                password: hash,
+                pseudo: req.body.pseudo,
+                photo: base64Image
+            })
+            User.findByIdAndUpdate(req.params.id, 
+                {$set: {
+                    firstname: req.body.firstname,
+                    lastname: req.body.lastname,
+                    email: req.body.email,
+                    password: hash,
+                    pseudo: req.body.pseudo,
+                    photo: base64Image
                 }
-                if (result.modifiedCount === 1) {
-                    const message = `Utilisateur : ${updatedUser.pseudo} mis à jour avec succès.`
-                    res.json({ message, data: updatedUser });
-                } else {
-                    const message = 'Document non trouvé.'
-                    res.status(404).json({ message });
+            }).then(updatedUser=> {
+                if (!updatedUser) {
+                    return res.status(404).json({ message: 'Utilisateur non trouvé' })
                 }
-            });
-        } catch (error) {
-            const message = "Erreur lors de la mise à jour de l'utilisateur"
-            res.status(500).json({ message, data: error });
-        } finally {
-            await client.close();
-        }
-    });
+                const message = `L'utilisateur a été modifié`
+                res.json({ message, data: updatedUser})
+            })
+            .catch(err => {
+                res.status(500).json({ error: err.message })
+            })
+        })
+    })
 }

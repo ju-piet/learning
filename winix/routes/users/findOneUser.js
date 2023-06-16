@@ -1,24 +1,18 @@
-const { client, usersCollection } = require('../../database/mongodb')
+const User = require('../../database/models/user')
+const auth = require('../auth/auth')
 
 module.exports = (app) => {
-    app.get('/api/users/:id', async (req, res) => {
-        try {
-            await client.connect()
-            const userId = new ObjectID(req.params.id)
-            const user = await usersCollection.findOne({ _id: userId })
-    
-            if (user) {
-                const message = `L'utilisateur : ${user.pseudo} a été retrouvé`
-                res.json({ message, data: user })
-            } else {
-                const message = "Impossible de retrouver l'utilisateur."
-                res.status(404).json({ message })
+    app.get('/api/users/:id', auth, (req, res) => {
+        User.findById(req.params.id)
+        .then(user => {
+            if (!user) {
+                return res.status(404).json({ message: 'Utilisateur non trouvé' })
             }
-        } catch (error) {
-            const message = "Impossible de retrouver l'utilisateur."
-            res.status(500).json({ message, data: error.message })
-        } finally {
-          await client.close()
-        }
+            const message = `L'utilisateur ${user.pseudo} a été retrouvé`
+            res.json({ message, data: user })
+        })
+        .catch(err => {
+            res.status(500).json({ error: err.message })
+        })
     })
 }
