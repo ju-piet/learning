@@ -11,10 +11,11 @@ app
     .use(bodyParser.json())
     .use(morgan('dev'))
 
+require('./app/routes/login')(app)
+
 // Appel des routes Users, Annonces et Login
 const usersRoutes = require('./app/routes/usersRoutes')
 const annoncesRoutes = require('./app/routes/annoncesRoutes')
-require('./app/routes/login')(app)
 
 app.use('/api/users', auth, usersRoutes)
 app.use('/api/annonces', auth, annoncesRoutes)
