@@ -1,6 +1,7 @@
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
-const mongoose = require('./database/mongoose')
+const mongoose = require('./services/database/mongoose')
+const auth = require('./services/auth/auth')
 const express = require('express')
 const app = express()
 
@@ -10,23 +11,14 @@ app
     .use(bodyParser.json())
     .use(morgan('dev'))
 
-// Appel de la route LOGIN
-require('./routes/auth/login')(app)
+// Appel des routes Users, Annonces et Login
+const usersRoutes = require('./app/routes/usersRoutes')
+const annoncesRoutes = require('./app/routes/annoncesRoutes')
+require('./app/routes/login')(app)
 
+app.use('/api/users', auth, usersRoutes)
+app.use('/api/annonces', auth, annoncesRoutes)
 
-// Appel des routes USERS
-require('./routes/users/createUser')(app)
-require('./routes/users/findOneUser')(app)
-require('./routes/users/findAllUsers')(app)
-require('./routes/users/updateUser')(app)
-require('./routes/users/deleteUser')(app)
-
-// Appel des routes ANNONCES
-require('./routes/annonces/createAnnonce')(app)
-require('./routes/annonces/findOneAnnonce')(app)
-require('./routes/annonces/findAllAnnonces')(app)
-require('./routes/annonces/updateAnnonce')(app)
-require('./routes/annonces/deleteAnnonce')(app)
 
 app.use(({res}) => {
     const message = "Impossible de fournir la ressource demandée. Veuillez utiliser une autre URL"
