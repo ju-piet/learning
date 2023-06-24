@@ -31,6 +31,4 @@ const annonceSchema = mongoose.Schema({
     }
 })
 
-const annonceModel = mongoose.model('Annonce', annonceSchema, 'Annonces')
-
-module.exports = annonceModel
+module.exports = mongoose.model('Annonce', annonceSchema, 'Annonces')
