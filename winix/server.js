@@ -1,7 +1,6 @@
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const mongoose = require('./services/database/mongoose')
-const auth = require('./services/auth/auth')
 const express = require('express')
 const app = express()
 
@@ -17,8 +16,8 @@ require('./app/routes/login')(app)
 const usersRoutes = require('./app/routes/usersRoutes')
 const annoncesRoutes = require('./app/routes/annoncesRoutes')
 
-app.use('/api/users', auth, usersRoutes)
-app.use('/api/annonces', auth, annoncesRoutes)
+app.use('/api/users', usersRoutes)
+app.use('/api/annonces', annoncesRoutes)
 
 
 app.use(({res}) => {
@@ -26,7 +25,9 @@ app.use(({res}) => {
     res.status(404).json({message})
 })
 
-app.listen(PORT, () => { console.log(`Server is running on : http://localhost:${PORT}`) })
+const server = app.listen(PORT, () => { console.log(`Server is running on : http://localhost:${PORT}`) })
+
+module.exports = server
 
 
 
