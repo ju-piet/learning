@@ -1,4 +1,9 @@
 const User = require('../models/usersModel')
+const bcrypt = require('bcrypt')
+const fs = require('fs')
+
+const profilePhoto = fs.readFileSync('C:\\Users\\julie\\OneDrive\\Bureau\\repositories\\learning\\winix\\src\\images\\julien.jpg')
+const base64Image = profilePhoto.toString('base64')
 
 const createUser = async (req, res) => {
     bcrypt.hash(req.body.password, 10)
@@ -13,7 +18,7 @@ const createUser = async (req, res) => {
             })
             newUser.save().then(user => {
                 const message = `L'utilisateur ${user.pseudo} a été créé`
-                res.json({ message, data: user })
+                return res.json({ message, data: user })
             })
                 .catch(err => {
                     res.status(500).json({ error: err.message })
