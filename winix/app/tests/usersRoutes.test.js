@@ -1,8 +1,6 @@
 const mongoose = require("mongoose")
 const request = require('supertest')
-const bcrypt = require('bcrypt')
 const app = require("../../app")
-const users = require('./usersData')
 
 let token, userCreatedId
 const tokenExpired = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDhjYWNmMTVhYjZhOGNmOTNlZTNjOWQiLCJpYXQiOjE2ODY5NDMzODEsImV4cCI6MTY4NzAyOTc4MX0.w2clBemwpscH-9Q4WLXwEI1aKlw6FgHvbUEfBaomfDg"
@@ -30,7 +28,7 @@ afterEach(async () => {
 });
 
 describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n------------------------------`, () => {
-    describe("A la création d'un utilisateur avec tout les champs remplis correctement : ", () => {
+    describe("A la création d'un utilisateur : ", () => {
         it("la réponse doit retourner un code 200 et l'utilisateur créé", async () => {
             const res = await request(app)
                 .post("/api/users")
@@ -410,7 +408,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         describe("- la suppression d'un unique utilisateur : ", () => {
             it("la réponse doit retourner une erreur", async () => {
                 const res = await request(app)
-                    .delete("/api/users")
+                    .delete(`/api/users/${userCreatedId}`)
                     .set('Authorization', `Bearer `)
                 expect(res.statusCode).toBe(401)
                 expect(res.body.message).toBe("L'utilisateur n'est pas autorisé à accèder à cette ressource.")
@@ -475,7 +473,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         describe("- la suppression d'un unique utilisateur : ", () => {
             it("la réponse doit retourner une erreur", async () => {
                 const res = await request(app)
-                    .delete("/api/users")
+                    .delete(`/api/users/${userCreatedId}`)
                     .set('Authorization', `Bearer ${tokenExpired}`)
                 expect(res.statusCode).toBe(401)
                 expect(res.body.message).toBe("L'utilisateur n'est pas autorisé à accèder à cette ressource.")
