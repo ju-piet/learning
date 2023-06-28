@@ -1,8 +1,6 @@
 const User = require('../models/usersModel')
 const bcrypt = require('bcrypt')
 const fs = require('fs')
-const jwt = require('jsonwebtoken')
-const privateKey = require('../../services/auth/private_key')
 
 const profilePhoto = fs.readFileSync('C:\\Users\\julie\\OneDrive\\Bureau\\repositories\\learning\\winix\\src\\images\\julien.jpg')
 const base64Image = profilePhoto.toString('base64')
@@ -40,10 +38,11 @@ const createUser = async (req, res) => {
 }
 
 const getAllUser = async (req, res) => {
-    User.find().then(users => {
-        const message = 'La liste des utilisateurs a été récupérée'
-        return res.json({ message, data: users })
-    })
+    User.find()
+        .then(users => {
+            const message = 'La liste des utilisateurs a été récupérée'
+            return res.json({ message, data: users })
+        })
         .catch(err => {
             return res.status(500).json({ error: err.message })
         })
@@ -56,13 +55,13 @@ const getUserById = async (req, res) => {
                 return res.status(404).json({ message: 'Utilisateur non trouvé' })
             }
             const message = `L'utilisateur ${user.pseudo} a été retrouvé`
-            res.json({ message, data: user })
+            return res.json({ message, data: user })
         })
         .catch(err => {
             if (err.name === "CastError") {
                 return res.status(400).json({ message: err.message, data: err })
             }
-            const message = "L'utilisateur n'a pas été retrouvé"
+            const message = "L'utilisateur n'a pas pu être retrouvé"
             return res.status(400).json({ message, data: err })
         })
 }
@@ -78,63 +77,25 @@ const updateUserById = async (req, res) => {
             const newPassword = req.body.password !== undefined ? req.body.password : user.password
             const newPseudo = req.body.pseudo !== undefined ? req.body.pseudo : user.pseudo
 
-            if(!req.body.password){
-                User.findByIdAndUpdate(req.params.userId,
-                    {
-                        $set: {
-                            email: newEmail,
-                            password: newPassword,
-                            pseudo: newPseudo,
-                            photo: base64Image
-                        }                      
-                    }, { runValidators: true })
-                    .then(updatedUser => {
-                        if (!updatedUser) {
-                            return res.status(404).json({ message: 'Utilisateur non trouvé' })
-                        }
-                        User.findById(req.params.userId)
-                            .then(user => {
-                                if (!user) {
-                                    return res.status(404).json({ message: 'Utilisateur non trouvé' })
-                                }
-                                const message = `L'utilisateur a été modifié`
-                                return res.json({ message, data: user })
-                            })
-                    })
-                    .catch(err => {
-                        if(err.name == "ValidationError"){
-                            return res.status(400).json({ message: err.message, data: err })
-                        }
-                        return res.status(500).json({ message: err.message, data: err })
-                    })
-            }else{
+            if (!req.body.password) {
+                findUserByIdAndUpdate(
+                    req.params.userId,
+                    newEmail,
+                    newPassword,
+                    newPseudo,
+                    base64Image,
+                    res)
+            } else {
                 bcrypt.hash(newPassword, 10)
-                .then(hash => {
-                    User.findByIdAndUpdate(req.params.userId,
-                        {
-                            $set: {
-                                email: newEmail,
-                                password: hash,
-                                pseudo: newPseudo,
-                                photo: base64Image
-                            }
-                        }).then(updatedUser => {
-                            if (!updatedUser) {
-                                return res.status(404).json({ message: 'Utilisateur non trouvé' })
-                            }
-                            User.findById(req.params.userId)
-                                .then(user => {
-                                    if (!user) {
-                                        return res.status(404).json({ message: 'Utilisateur non trouvé' })
-                                    }
-                                    const message = `L'utilisateur a été modifié`
-                                    return res.json({ message, data: user })
-                                })
-                        })
-                        .catch(err => {
-                            return res.status(500).json({ error: err.message })
-                        })
-                })
+                    .then(hash => {
+                        findUserByIdAndUpdate(
+                            req.params.userId,
+                            newEmail,
+                            hash,
+                            newPseudo,
+                            base64Image,
+                            res)
+                    })
             }
         })
         .catch(err => {
@@ -164,14 +125,35 @@ const deleteUserById = async (req, res) => {
         })
 }
 
-const deleteAllUser = async (req, res) => {
-    User.deleteMany({})
-        .then(() => {
-            const message = 'Supression de tous les utilisateurs faite !'
-            return res.json({ message })
+const findUserByIdAndUpdate = (userId, email, password, pseudo, photo, res) => {
+    User.findByIdAndUpdate(userId,
+        {
+            $set: {
+                email: email,
+                password: password,
+                pseudo: pseudo,
+                photo: photo,
+                updateAt: Date.now
+            }
+        }, { runValidators: true })
+        .then(updatedUser => {
+            if (!updatedUser) {
+                return res.status(404).json({ message: 'Utilisateur non trouvé' })
+            }
+            User.findById(userId)
+                .then(user => {
+                    if (!user) {
+                        return res.status(404).json({ message: 'Utilisateur non trouvé' })
+                    }
+                    const message = `L'utilisateur a été modifié`
+                    return res.json({ message, data: user })
+                })
         })
         .catch(err => {
-            return res.status(500).json({ error: err.message })
+            if (err.name == "ValidationError") {
+                return res.status(400).json({ message: err.message, data: err })
+            }
+            return res.status(500).json({ message: err.message, data: err })
         })
 }
 
@@ -180,7 +162,6 @@ module.exports = {
     getAllUser,
     getUserById,
     updateUserById,
-    deleteUserById,
-    deleteAllUser
+    deleteUserById
 }
 
