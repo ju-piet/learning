@@ -1,12 +1,13 @@
+require('dotenv').config()
 const mongoose = require('mongoose')
-const app = require("./app");
+const app = require("./app")
 const PORT = 3000
 
 mongoose
-    .connect("mongodb+srv://ju-piet:wTknLZUJ87iGlBOi@cluster0.2och2bx.mongodb.net/?retryWrites=true&w=majority", {
+    .connect(process.env.MONGO_DB_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        dbName: 'Winix_db'
+        dbName: process.env.DB_NAME
     })
     .then(() => {
         console.log('Connecté à la base MongoDb')
