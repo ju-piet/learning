@@ -1,7 +1,7 @@
 const User = require('../models/usersModel')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const privateKey = require('../../services/auth/private_key')
+const privateKey = require('../service/private_key')
 
 module.exports = (app) => {
     app.post('/api/login', (req, res) => {
