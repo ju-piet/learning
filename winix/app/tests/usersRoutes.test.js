@@ -1,16 +1,17 @@
+require('dotenv').config()
 const mongoose = require("mongoose")
 const request = require('supertest')
 const app = require("../../app")
 
+const tokenExpired = process.env.TOKEN_EXPIRED
 let token, userCreatedId
-const tokenExpired = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDhjYWNmMTVhYjZhOGNmOTNlZTNjOWQiLCJpYXQiOjE2ODY5NDMzODEsImV4cCI6MTY4NzAyOTc4MX0.w2clBemwpscH-9Q4WLXwEI1aKlw6FgHvbUEfBaomfDg"
 
 beforeEach(async () => {
     await mongoose
-        .connect("mongodb+srv://ju-piet:wTknLZUJ87iGlBOi@cluster0.2och2bx.mongodb.net/?retryWrites=true&w=majority", {
+        .connect(process.env.MONGO_DB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            dbName: 'Winix_db_tests'
+            dbName: process.env.DB_NAME_TESTS
         })
         .then(async () => {
             const res = await request(app)
@@ -25,9 +26,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
     await mongoose.connection.close()
-});
+})
 
-describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n------------------------------`, () => {
+describe(`\n--------------------------------------\n[USERS] POUR LES CAS CRUD SANS ERREURS\n--------------------------------------`, () => {
     describe("A la création d'un utilisateur : ", () => {
         it("la réponse doit retourner un code 200 et l'utilisateur créé", async () => {
             const res = await request(app)
@@ -61,7 +62,7 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
         })
     })
 
-    describe("A la récupération d'un unique utilisateur : ", () => {
+    describe("A la récupération d'un utilisateur : ", () => {
         it("la réponse doit retourner un code 200 et l'utilisateur recherché", async () => {
             const res = await request(app)
                 .get(`/api/users/${userCreatedId}`)
@@ -75,8 +76,8 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
         })
     })
 
-    describe("A la modification d'un unique utilisateur (l'utilisateur se modifie lui même) : ", () => {
-        describe("- l'utilisateur ne modifie que 2 paramètres sur 3", () => {
+    describe("A la modification d'un utilisateur (l'utilisateur se modifie lui même) : ", () => {
+        describe("- si l'utilisateur ne modifie que 2 paramètres sur 3", () => {
             it("la réponse doit retourner un code 200 et l'utilisateur modifié", async () => {
                 await request(app)
                     .post('/api/login')
@@ -100,7 +101,7 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
                     })
             })
         })
-        describe("- l'utilisateur ne modifie que 1 paramètre sur 3", () => {
+        describe("- si l'utilisateur ne modifie que 1 paramètre sur 3", () => {
             it("la réponse doit retourner un code 200 et l'utilisateur modifié", async () => {
                 await request(app)
                     .post('/api/login')
@@ -125,7 +126,7 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
         })
     })
 
-    describe("A la suppression d'un unique utilisateur : ", () => {
+    describe("A la suppression d'un utilisateur : ", () => {
         it("la réponse doit retourner un code 200 et l'utilisateur supprimé", async () => {
             await request(app)
                 .post('/api/login')
@@ -149,7 +150,7 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
     })
 })
 
-describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n---------------------------`, () => {
+describe(`\n-----------------------------------\n[USERS] POUR LES CAS D'ERREURS CRUD\n-----------------------------------`, () => {
     describe("A la création d'un utilisateur lorsqu'il manque le champ : ", () => {
         describe("- firstname : ", () => {
             it("la réponse doit retourner une erreur 400 de validation", async () => {
@@ -271,9 +272,9 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
     })
 
-    describe("A la récupération d'un unique utilisateur lorsqu'il y a des erreurs sur l'ID : ", () => {
+    describe("A la récupération d'un utilisateur : ", () => {
         describe("- si l'ID n'est pas au bon format : ", () => {
-            it("une erreur de cast est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 400 de cast", async () => {
                 const res = await request(app)
                     .get(`/api/users/a373aa4497zzzee387387eerrrr87968766t737tt`)
                     .set('Authorization', `Bearer ${token}`)
@@ -283,29 +284,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- si aucun utilisateur ne correspond à l'ID recherché : ", () => {
-            it("une erreur est renvoyé", async () => {
-                const res = await request(app)
-                    .get(`/api/users/${userCreatedId}`)
-                    .set('Authorization', `Bearer ${token}`)
-                expect(res.statusCode).toBe(404)
-                expect(res.body.message).toBe('Utilisateur non trouvé')
-            })
-        })
-    })
-
-    describe("A la récupération d'un unique utilisateur lorsqu'il y a des erreurs sur l'ID : ", () => {
-        describe("- si l'ID n'est pas au bon format : ", () => {
-            it("une erreur de cast est renvoyé", async () => {
-                const res = await request(app)
-                    .get(`/api/users/a373aa4497zzzee387387eerrrr87968766t737tt`)
-                    .set('Authorization', `Bearer ${token}`)
-                expect(res.statusCode).toBe(400)
-                expect(res.body.message).toBe('Cast to ObjectId failed for value \"a373aa4497zzzee387387eerrrr87968766t737tt\" (type string) at path \"_id\" for model \"User\"')
-            })
-        })
-
-        describe("- si aucun utilisateur ne correspond à l'ID recherché : ", () => {
-            it("une erreur est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 404 de ressources non trouvées", async () => {
                 const res = await request(app)
                     .get(`/api/users/${userCreatedId}`)
                     .set('Authorization', `Bearer ${token}`)
@@ -316,7 +295,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
     })
 
     describe("A la modification d'un utilisateur lorsque le champ email est d'un mauvais type : ", () => {
-        it("une erreur est renvoyé", async () => {
+        it("la réponse doit retourner une erreur 400 de validation", async () => {
             await request(app)
                 .get(`/api/users`)
                 .set('Authorization', `Bearer ${token}`)
@@ -331,9 +310,9 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
     })
 
-    describe("A la supression d'un unique utilisateur lorsqu'il y a des erreurs sur l'ID' : ", () => {
+    describe("A la supression d'un utilisateur : ", () => {
         describe("- si l'ID n'est pas au bon format : ", () => {
-            it("une erreur 400 de cast est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 400 de cast", async () => {
                 const res = await request(app)
                     .delete(`/api/users/a373aa4497zzzee387387eerrrr87968766t737tt`)
                     .set('Authorization', `Bearer ${token}`)
@@ -343,7 +322,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- si aucun utilisateur ne correspond à l'ID recherché : ", () => {
-            it("une erreur est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 404 de ressources non trouvées", async () => {
                 const res = await request(app)
                     .delete(`/api/users/${userCreatedId}`)
                     .set('Authorization', `Bearer ${token}`)
@@ -355,7 +334,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("Si le token est manquant pour : ", () => {
         describe("- la récupération de tout les utilisateurs : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer `)
@@ -366,8 +345,8 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
             })
         })
 
-        describe("- la récupération d'un unique utilisateur : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+        describe("- la récupération d'un utilisateur : ", () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${token}`)
@@ -383,8 +362,8 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
             })
         })
 
-        describe("- la modification d'un unique utilisateur : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+        describe("- la modification d'un utilisateur : ", () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${token}`)
@@ -405,8 +384,8 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
             })
         })
 
-        describe("- la suppression d'un unique utilisateur : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+        describe("- la suppression d'un utilisateur : ", () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .delete(`/api/users/${userCreatedId}`)
                     .set('Authorization', `Bearer `)
@@ -420,7 +399,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("Si le token est expiré pour : ", () => {
         describe("- la récupération de tout les utilisateurs : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${tokenExpired}`)
@@ -432,7 +411,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la récupération d'un unique utilisateur : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${token}`)
@@ -449,7 +428,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la modification d'un utilisateur : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${token}`)
@@ -471,7 +450,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la suppression d'un unique utilisateur : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .delete(`/api/users/${userCreatedId}`)
                     .set('Authorization', `Bearer ${tokenExpired}`)
@@ -485,7 +464,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("Modification/suppression de données d'un utilisateur X par un utilisateur Y : ", () => {
         describe("- la modification : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 d'ID non valide", async () => {
                 await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${token}`)
@@ -505,7 +484,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la suppression : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 d'ID non valide", async () => {
                 await request(app)
                     .get("/api/users")
                     .set('Authorization', `Bearer ${token}`)

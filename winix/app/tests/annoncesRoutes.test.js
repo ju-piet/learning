@@ -1,17 +1,17 @@
+require('dotenv').config()
 const mongoose = require("mongoose")
 const request = require('supertest')
 const app = require("../../app")
-const annonces = require('./annoncesData')
 
 let token, userId
-const tokenExpired = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDhjYWNmMTVhYjZhOGNmOTNlZTNjOWQiLCJpYXQiOjE2ODY5NDMzODEsImV4cCI6MTY4NzAyOTc4MX0.w2clBemwpscH-9Q4WLXwEI1aKlw6FgHvbUEfBaomfDg"
+const tokenExpired = process.env.TOKEN_EXPIRED
 
 beforeEach(async () => {
     await mongoose
-        .connect("mongodb+srv://ju-piet:wTknLZUJ87iGlBOi@cluster0.2och2bx.mongodb.net/?retryWrites=true&w=majority", {
+        .connect(process.env.MONGO_DB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            dbName: 'Winix_db_tests'
+            dbName: process.env.DB_NAME_TESTS
         })
         .then(async () => {
             const res = await request(app)
@@ -27,9 +27,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
     await mongoose.connection.close()
-});
+})
 
-describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n------------------------------`, () => {
+describe(`\n-----------------------------------------\n[ANNONCES] POUR LES CAS CRUD SANS ERREURS\n-----------------------------------------`, () => {
     describe("A la création d'une annonce : ", () => {
         it("la réponse doit retourner un code 200 et l'annonce créée", async () => {
             const res = await request(app)
@@ -67,7 +67,7 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
         })
     })
 
-    describe("A la récupération d'une unique annonce : ", () => {
+    describe("A la récupération d'une annonce : ", () => {
         it("la réponse doit retourner un code 200 et l'annonce recherchée", async () => {
             const res = await request(app)
                 .get(`/api/annonces/${annonceCreatedId}`)
@@ -144,7 +144,7 @@ describe(`\n------------------------------\nPOUR LES CAS CRUD SANS ERREURS\n----
     })
 })
 
-describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n---------------------------`, () => {
+describe(`\n--------------------------------------\n[ANNONCES] POUR LES CAS D'ERREURS CRUD\n--------------------------------------`, () => {
     describe("A la création d'une annonce lorsqu'il manque le champ : ", () => {
         describe("- title : ", () => {
             it("la réponse doit retourner une erreur 400 de validation", async () => {
@@ -204,9 +204,9 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
     })
 
-    describe("A la récupération d'une annonce lorsqu'il y a des erreurs sur l'ID : ", () => {
+    describe("A la récupération d'une annonce : ", () => {
         describe("- si l'ID n'est pas au bon format : ", () => {
-            it("une erreur de cast est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 400 de cast", async () => {
                 const res = await request(app)
                     .get(`/api/annonces/a373aa4497zzzee387387eerrrr87968766t737tt`)
                     .set('Authorization', `Bearer ${token}`)
@@ -216,7 +216,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- si aucune annonces ne correspondent à l'ID recherché : ", () => {
-            it("une erreur est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 404 de ressources non trouvées", async () => {
                 const res = await request(app)
                     .get(`/api/annonces/${annonceCreatedId}`)
                     .set('Authorization', `Bearer ${token}`)
@@ -226,9 +226,9 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
     })
 
-    describe("A la récupération d'une annonce lorsqu'il y a des erreurs sur l'ID : ", () => {
+    describe("A la récupération d'une annonce : ", () => {
         describe("- si l'ID n'est pas au bon format : ", () => {
-            it("une erreur de cast est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 400 de cast", async () => {
                 const res = await request(app)
                     .get(`/api/annonces/a373aa4497zzzee387387eerrrr87968766t737tt`)
                     .set('Authorization', `Bearer ${token}`)
@@ -238,7 +238,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- si aucunes annonces ne correspondent à l'ID recherché : ", () => {
-            it("une erreur est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 404 de ressources non trouvées", async () => {
                 const res = await request(app)
                     .get(`/api/annonces/${annonceCreatedId}`)
                     .set('Authorization', `Bearer ${token}`)
@@ -250,7 +250,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("A la supression d'une annonce lorsqu'il y a des erreurs sur l'ID' : ", () => {
         describe("- si l'ID n'est pas au bon format : ", () => {
-            it("une erreur 400 de cast est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 400 de cast", async () => {
                 const res = await request(app)
                     .delete(`/api/annonces/a373aa4497zzzee387387eerrrr87968766t737tt`)
                     .set('Authorization', `Bearer ${token}`)
@@ -260,7 +260,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- si aucunes annonces ne correspondent à l'ID recherché : ", () => {
-            it("une erreur est renvoyé", async () => {
+            it("la réponse doit retourner une erreur 404 de ressources non trouvées", async () => {
                 const res = await request(app)
                     .delete(`/api/annonces/${annonceCreatedId}`)
                     .set('Authorization', `Bearer ${token}`)
@@ -272,7 +272,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("Si le token est manquant pour : ", () => {
         describe("- la récupération de toutes les annonces : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer `)
@@ -284,7 +284,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la récupération d'une annonce : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${token}`)
@@ -301,7 +301,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la modification d'une annonce : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${token}`)
@@ -328,7 +328,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la suppression d'une annonce  : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .delete(`/api/annonces/${annonceCreatedId}`)
                     .set('Authorization', `Bearer `)
@@ -342,7 +342,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("Si le token est expiré pour : ", () => {
         describe("- la récupération de toutes les annonces : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWTr", async () => {
                 const res = await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${tokenExpired}`)
@@ -354,7 +354,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la récupération d'une annonce : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${token}`)
@@ -371,7 +371,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la modification d'une annonce : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${token}`)
@@ -398,7 +398,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la suppression d'une annonce : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 de JWT", async () => {
                 const res = await request(app)
                     .delete(`/api/annonces/${annonceCreatedId}`)
                     .set('Authorization', `Bearer ${tokenExpired}`)
@@ -412,7 +412,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
 
     describe("Modification/suppression de données d'une annonce d'un utilisateur X par un utilisateur Y : ", () => {
         describe("- la modification : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 d'ID non valide", async () => {
                 await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${token}`)
@@ -438,7 +438,7 @@ describe(`\n---------------------------\nPOUR LES CAS D'ERREURS CRUD\n----------
         })
 
         describe("- la suppression : ", () => {
-            it("la réponse doit retourner une erreur", async () => {
+            it("la réponse doit retourner une erreur 401 d'ID non valide", async () => {
                 await request(app)
                     .get("/api/annonces")
                     .set('Authorization', `Bearer ${token}`)
