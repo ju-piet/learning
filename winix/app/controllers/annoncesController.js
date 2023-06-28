@@ -1,6 +1,6 @@
 const fs = require('fs')
 const jwt = require('jsonwebtoken')
-const privateKey = require('../../services/auth/private_key')
+const privateKey = require('../service/private_key')
 const Annonce = require('../models/annoncesModel')
 
 //TEST
@@ -33,12 +33,19 @@ const createAnnonce = async (req, res) => {
             userId: decodedToken.userId,
         })
 
-        newAnnonce.save().then(annonce => {
-            const message = `L'annonce ${annonce.title} a été créé`
-            res.json({ message, data: annonce })
-        })
+        newAnnonce.save()
+            .then(annonce => {
+                const message = `L'annonce ${annonce.title} a été créé`
+                return res.json({ message, data: annonce })
+            })
             .catch(err => {
-                res.status(500).json({ error: err.message })
+                if (err.name == 'ValidationError') {
+                    return res.status(400).json({ message: err.message, data: err })
+                }
+                if (err.name == 'UniqueConstraintError') {
+                    return res.status(400).json({ message: err.message, data: err })
+                }
+                return res.status(500).json({ error: err.message })
             })
     })
 }
@@ -47,64 +54,97 @@ const getAllAnnonces = async (req, res) => {
     Annonce.find()
         .then(annonces => {
             const message = 'La liste des annonces a été récupérée'
-            res.json({ message, data: annonces })
+            return res.json({ message, data: annonces })
         })
         .catch(err => {
-            res.status(500).json({ error: err.message })
+            return res.status(500).json({ error: err.message })
         })
 }
 
 const getAnnonceById = async (req, res) => {
-    Annonce.findById(req.params.annonceId).then(annonce => {
-        if (!annonce) {
-            return res.status(404).json({ message: 'Annonce non trouvé' })
-        }
-        const message = `L'annonce ${annonce.title} a été retrouvé`
-        res.json({ message, data: annonce })
-    })
+    Annonce.findById(req.params.annonceId)
+        .then(annonce => {
+            if (!annonce) {
+                return res.status(404).json({ message: 'Annonce non trouvé' })
+            }
+            const message = `L'annonce ${annonce.title} a été retrouvé`
+            return res.json({ message, data: annonce })
+        })
         .catch(err => {
-            res.status(500).json({ error: err.message })
+            if (err.name === "CastError") {
+                return res.status(400).json({ message: err.message, data: err })
+            }
+            const message = "L'annonce n'a pas pu être retrouvée"
+            return res.status(500).json({ message, data: err })
         })
 }
 
-const updateAnnonce = async (req, res) => {
-    Annonce.findByIdAndUpdate(req.params.annonceId, {
-        title: req.body.title,
-        description: req.description,
-        state: req.body.state,
-        updateAt: Date.now
-    }).then(updatedAnnonce => {
-        if (!updatedAnnonce) {
-            return res.status(404).json({ message: 'Annonce non trouvée' })
-        }
-        const message = `L'annonce a été modifié`
-        res.json({ message, data: updatedAnnonce })
-    })
-        .catch(err => {
-            res.status(500).json({ error: err.message })
+const updateAnnonceById = async (req, res) => {
+    Annonce.findById(req.params.annonceId)
+        .then(annonce => {
+            if (!annonce) {
+                return res.status(404).json({ message: 'Annonce non trouvée' })
+            }
+
+            const newTitle = req.body.title !== undefined ? req.body.title : annonce.email
+            const newDescription = req.body.description !== undefined ? req.body.description : annonce.description
+            const newPhotos = req.body.photos !== undefined ? req.body.photos : annonce.photos
+            const newState = req.body.state !== undefined ? req.body.state : annonce.state
+
+            Annonce.findByIdAndUpdate(req.params.annonceId,
+                {
+                    $set: {
+                        title: newTitle,
+                        description: newDescription,
+                        photos: newPhotos,
+                        state: newState,
+                        updateAt: Date.now
+                    }
+                }, { runValidators: true })
+                .then(updatedAnnonce => {
+                    if (!updatedAnnonce) {
+                        return res.status(404).json({ message: 'Annonce non trouvée' })
+                    }
+
+                    Annonce.findById(req.params.annonceId)
+                        .then(annonce => {
+                            const message = `L'annonce ${annonce.title} a été modifié`
+                            return res.json({ message, data: annonce })
+                        })
+                })
+                .catch(err => {
+                    if (err.name === "CastError") {
+                        return res.status(400).json({ message: err.message, data: err })
+                    }
+                    return res.status(500).json({ error: err.message })
+                })
         })
 }
 
-const deleteAnnonce = async (req, res) => {
+const deleteAnnonceById = async (req, res) => {
     Annonce.findByIdAndRemove(req.params.annonceId)
         .then(deletedAnnonce => {
             if (!deletedAnnonce) {
                 return res.status(404).json({ message: 'Annonce non trouvé' })
             }
             const message = `L'annonce ${deletedAnnonce.title} a été supprimée avec succès`
-            res.json({ message, data: deletedAnnonce })
+            return res.json({ message, data: deletedAnnonce })
         })
         .catch(err => {
-            res.status(500).json({ error: err.message })
+            if (err.name === "CastError") {
+                return res.status(400).json({ message: err.message, data: err })
+            }
+
+            return res.status(500).json({ error: err.message })
         })
 }
 
-module.exports = { 
-    createAnnonce, 
-    getAllAnnonces, 
-    getAnnonceById, 
-    updateAnnonce, 
-    deleteAnnonce 
+module.exports = {
+    createAnnonce,
+    getAllAnnonces,
+    getAnnonceById,
+    updateAnnonceById,
+    deleteAnnonceById
 }
 
 
