@@ -15,7 +15,13 @@ const annonceSchema = mongoose.Schema({
     },
     state: {
         type: String,
-        required: true
+        required: true,
+        validate: {
+            validator: (value) => {
+                return /^[A-Za-zé]+$/.test(value)
+            },
+            message: props => `${props.value} is not a valid state.`
+        }
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
